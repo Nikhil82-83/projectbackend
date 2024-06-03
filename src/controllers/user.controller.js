@@ -5,13 +5,7 @@ import {uploadOnCloud} from "../utils/cloudinary.js"
 import { ApiResponse } from '../utils/ApiResponse.js';
 
 const registerUser =asynchandler(async(req,res)=>{
-    res.status(200).json({
-        message : "ok"
-    })
-
     const {fullname,email,username,password}=req.body;
-    console.log(email);
-    
     if(
         [fullname,email,username,password].some(
             (field)=>{
@@ -23,7 +17,7 @@ const registerUser =asynchandler(async(req,res)=>{
 
     }
 
-    const existeduser =user.findOne({
+    const existeduser =await user.findOne({
         $or :[{username},{email}]
     })
     if(existeduser){
@@ -32,8 +26,12 @@ const registerUser =asynchandler(async(req,res)=>{
 
 
     const avatarlocal=req.files?.avatar[0]?.path;
+    let coverlocal;
+    if(req.files && Array.isArray(req.files.coverimage) && req.files.coverimage.length>0){
+        coverlocal=req.files?.coverimage[0]?.path; 
+    }
 
-    const coverlocal=req.files?.coverimage[0]?.path;
+    
 
     if(!avatarlocal){
         throw new ApiError(400,"avatar required")
