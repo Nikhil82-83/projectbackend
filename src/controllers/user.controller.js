@@ -215,4 +215,104 @@ const refreshaccesstoken=asynchandler(async(req,res)=>{
     }
 })
 
-export {registerUser,loginUser,logoutuser,refreshaccesstoken}
+const changepassword=asynchandler(async(req,res)=>{
+    const {oldpassword,newpassword}=req.body
+
+    const isuser=await user.findById(req.body?._id);
+    if(!isuser){
+        throw new ApiError(
+            420,"unauthorised request"
+        )
+    }
+
+    const istrue=await isuser.isPasswordCorrect(oldpassword);
+
+    if(!istrue){
+        throw new ApiError(420,
+            "wrong password"
+        )
+    }
+    isuser.password=newpassword;
+    await isuser.save({validateBeforeSave :false})
+
+    res.status(200).json(
+        new ApiResponse(200,
+            "password changed"
+        )
+    )
+})
+
+const getcurrentuser=asynchandler(async(req,res)=>{
+    return res.status(200).json(200,req.user,"userfetched success")
+})
+
+const updateinfo=asynchandler(async(req,res)=>{
+    const {fullname,email}=req.body
+
+    if(
+        [fullname,email].some(
+            (field)=>{
+                field?.trim ===""
+            }
+        )
+    ){
+        throw new ApiError(405,"enter valid details")
+    }
+
+    const fuser=await user.findByIdAndUpdate(req._id,{
+        fullname,
+        email
+    },{
+        new:true
+    }).select("-password")
+    if(!fuser){
+        throw new ApiError(406,"unable to updata you details")
+    }
+
+    return res.status(200).json(200,fuser,"updated info success")
+})
+const update_useravatar=asynchandler(async(req,res)=>{
+    const avatarlocal=await req.file?.path
+    if(!avatarlocal){
+        throw new ApiError(404,"avatar file not found")
+    }
+
+    const fuser=await user.findById(req._id)
+
+    if(!fuser){
+        throw new ApiError(420,"unauthorized request")
+    }
+    const cloudpath=await uploadOnCloud(avatarlocal)
+    if(!cloudpath){
+        throw new ApiError(503,"unable to upload the avatar")
+    }
+
+    fuser.avatar=cloudpath.url;
+    fuser.save({validateBeforeSave:false})
+
+    return res.status(200).json(new ApiResponse(200,fuser.select("-password"),"avatar update success"
+    ))
+})
+const update_usercover=asynchandler(async(req,res)=>{
+    const coverlocal=await req.file?.path
+    if(!avatarlocal){
+        throw new ApiError(404,"cover image file not found")
+    }
+
+    const fuser=await user.findById(req._id)
+
+    if(!fuser){
+        throw new ApiError(420,"unauthorized request")
+    }
+    const cloudpath=await uploadOnCloud(coverlocal)
+    if(!cloudpath){
+        throw new ApiError(503,"unable to upload the coverimage")
+    }
+
+    fuser.coverimage=cloudpath.url;
+    fuser.save({validateBeforeSave:false})
+
+    return res.status(200).json(new ApiResponse(200,fuser.select("-password"),"cover image update success"
+    ))
+})
+export {registerUser,loginUser,logoutuser,refreshaccesstoken,changepassword,getcurrentuser,updateinfo,update_useravatar,update_usercover}
